@@ -7,6 +7,7 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "signal.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
@@ -55,6 +56,37 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
+	//cprintf("Caught timer0\n");
+	if(proc && proc->setoff > 0){
+		proc->ticks++;
+		//cprintf("Caught timer\n");
+		//cprintf("Ticks: %d\n", proc->ticks);
+		if(proc->ticks >= proc->setoff){
+			  if(proc -> sig_handler_array[1] >= 0){ 
+				  uint old_eip = proc->tf->eip;	 //save old eip
+				  proc->tf->eip = proc -> sig_handler_array[1]; //eip points to handler
+				  siginfo_t info;
+				  info.signum = 1;
+				  int decr = sizeof(siginfo_t);
+				  *((siginfo_t*)(proc->tf->esp - decr)) = info; //push info onto stack
+				  decr += sizeof(uint); 
+				  *((uint*)(proc->tf->esp-decr)) = old_eip; //push old eip into stack
+				  proc->tf->esp -= decr; //decrement esp counter
+				  proc->ticks = 0;
+			}
+			else{
+				  cprintf("pid %d %s: trap %d err %d on cpu %d "
+				  "eip 0x%x addr 0x%x--kill proc\n",
+				  proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+				  rcr2());
+				  proc->killed = 1;
+				  if(proc && proc->killed)
+				     exit();
+				  return;
+			}
+		}
+
+	}
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();
@@ -77,6 +109,30 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
+  case T_DIVIDE:
+	//cprintf("Caught divide by 0\n");
+        if(proc -> sig_handler_array[0] >= 0){ //handler has been set
+	  uint old_eip = proc->tf->eip;	 //save old eip
+	  proc->tf->eip = proc -> sig_handler_array[0]; //eip points to handler
+          siginfo_t info;
+          info.signum = 0;
+          int decr = sizeof(siginfo_t);
+          *((siginfo_t*)(proc->tf->esp - decr)) = info; //push info onto stack
+	  decr += sizeof(uint); 
+	  *((uint*)(proc->tf->esp-decr)) = old_eip; //push old eip into stack
+	  proc->tf->esp -= decr; //decrement esp counter
+        }
+        else{
+           cprintf("pid %d %s: trap %d err %d on cpu %d "
+            "eip 0x%x addr 0x%x--kill proc\n",
+            proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+            rcr2());
+           proc->killed = 1;
+           if(proc && proc->killed)
+             exit();
+           return;
+        }
+	break;
    
   //PAGEBREAK: 13
   default:

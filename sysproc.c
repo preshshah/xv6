@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "signal.h"
 
 int
 sys_fork(void)
@@ -101,4 +102,39 @@ sys_halt(void)
   for( ; *p; p++)
     outw(0xB004, 0x2000);
   return 0;
+}
+
+int
+sys_register_signal_handler(void)
+{
+  int handler;
+  int signum;
+  
+  if(argint(0,&signum) < -1){
+      return -1;
+  }
+
+  if(argint(1,&handler) < 0) {
+    return -1;
+  }
+
+  proc->sig_handler_array[signum] = handler;
+  return 0;
+}
+
+int
+sys_alarm(void)
+{
+  int seconds;
+  int old = 0;
+  
+  if(argint(0,&seconds) < 0){
+	return -1;
+  }
+  if(proc -> setoff != 0)
+	old = (proc->setoff - proc->ticks)/500;
+  proc -> setoff = seconds*500;
+  proc -> ticks = 0;
+  //cprintf("Setoff: %d/n",proc->setoff);
+  return old;
 }
