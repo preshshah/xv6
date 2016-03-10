@@ -107,5 +107,14 @@ memmove(void *vdst, void *vsrc, int n)
 int
 signal(int signum, sighandler_t handler)
 {
- return register_signal_handler(signum, handler);
+ return register_signal_handler(signum, handler, void (* trampoline) (void));
 }
+
+__asm__("trampoline: \n\t"
+	"addl $0xC,%esp\n\t"
+	"pop %edx\n\t"
+	"pop %ecx\n\t"
+	"pop %eax\n\t"
+	"ret\n\t"
+	);
+		

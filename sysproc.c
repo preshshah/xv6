@@ -109,6 +109,7 @@ sys_register_signal_handler(void)
 {
   int handler;
   int signum;
+  int trampoline;
   
   if(argint(0,&signum) < -1){
       return -1;
@@ -118,7 +119,12 @@ sys_register_signal_handler(void)
     return -1;
   }
 
+  if(argint(2,&trampoline) < 0){
+    return -1;
+  }
+
   proc->sig_handler_array[signum] = handler;
+  proc->trampoline = trampoline;
   return 0;
 }
 
