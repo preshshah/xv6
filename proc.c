@@ -467,4 +467,15 @@ procdump(void)
     }
     cprintf("\n");
   }
+
+}
+
+void
+updateTicks()
+{
+  struct proc *p;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+	if(p && p->setoff > 0)
+		p->ticks++;
+  }
 }

@@ -56,37 +56,9 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
-	//cprintf("Caught timer0\n");
-	if(proc && proc->setoff > 0){
-		proc->ticks++;
-		//cprintf("Caught timer\n");
-		//cprintf("Ticks: %d\n", proc->ticks);
-		if(proc->ticks >= proc->setoff){
-			  if(proc -> sig_handler_array[1] >= 0){ 
-				  uint old_eip = proc->tf->eip;	 //save old eip
-				  proc->tf->eip = proc -> sig_handler_array[1]; //eip points to handler
-				  siginfo_t info;
-				  info.signum = 1;
-				  int decr = sizeof(siginfo_t);
-				  *((siginfo_t*)(proc->tf->esp - decr)) = info; //push info onto stack
-				  decr += sizeof(uint); 
-				  *((uint*)(proc->tf->esp-decr)) = old_eip; //push old eip into stack
-				  proc->tf->esp -= decr; //decrement esp counter
-				  proc->ticks = 0;
-			}
-			else{
-				  cprintf("pid %d %s: trap %d err %d on cpu %d "
-				  "eip 0x%x addr 0x%x--kill proc\n",
-				  proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
-				  rcr2());
-				  proc->killed = 1;
-				  if(proc && proc->killed)
-				     exit();
-				  return;
-			}
-		}
+    
+    updateTicks();
 
-	}
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();
@@ -160,6 +132,31 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
     yield();
+
+  if(proc && proc-> setoff > 0 && proc->ticks >= proc->setoff){
+	  if(proc -> sig_handler_array[1] >= 0){ 
+		  uint old_eip = proc->tf->eip;	 //save old eip
+		  proc->tf->eip = proc -> sig_handler_array[1]; //eip points to handler
+		  siginfo_t info;
+		  info.signum = 1;
+		  int decr = sizeof(siginfo_t);
+		  *((siginfo_t*)(proc->tf->esp - decr)) = info; //push info onto stack
+		  decr += sizeof(uint); 
+		  *((uint*)(proc->tf->esp-decr)) = old_eip; //push old eip into stack
+		  proc->tf->esp -= decr; //decrement esp counter
+		  proc->ticks = 0;
+	}
+	else{
+		  cprintf("pid %d %s: trap %d err %d on cpu %d "
+		  "eip 0x%x addr 0x%x--kill proc\n",
+		  proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+		  rcr2());
+		  proc->killed = 1;
+		  if(proc && proc->killed)
+		     exit();
+		  return;
+	}
+  }
 
   // Check if the process has been killed since we yielded
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
