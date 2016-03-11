@@ -84,8 +84,11 @@ trap(struct trapframe *tf)
   case T_DIVIDE:
 	//cprintf("Caught divide by 0\n");
         if(proc -> sig_handler_array[0] >= 0){ //handler has been set
+
 	  uint old_eip = proc->tf->eip;	 //save old eip
+
 	  proc->tf->eip = proc -> sig_handler_array[0]; //eip points to handler
+
           siginfo_t info;
           info.signum = 0;
 
@@ -107,7 +110,7 @@ trap(struct trapframe *tf)
 	  *((siginfo_t*)(proc->tf->esp-decr)) = info; //push info into stack
 	
 	  decr += uint_size;
-	  *((uint*)(proc->tf->esp-decr)) = proc->trampoline; //push tramp into stack
+	  *((uint*)(proc->tf->esp-decr)) = proc->trampoline; //push tramp into stack 
 
 	  proc->tf->esp -= decr; //decrement esp counter
 	  
@@ -154,15 +157,33 @@ trap(struct trapframe *tf)
   if(proc && proc-> setoff > 0 && proc->ticks >= proc->setoff){
 	  if(proc -> sig_handler_array[1] >= 0){ 
 		  uint old_eip = proc->tf->eip;	 //save old eip
+
 		  proc->tf->eip = proc -> sig_handler_array[1]; //eip points to handler
+
 		  siginfo_t info;
 		  info.signum = 1;
-		  int decr = sizeof(siginfo_t);
-		  *((siginfo_t*)(proc->tf->esp - decr)) = info; //push info onto stack
-		  decr += sizeof(uint); 
+
+		  int uint_size = sizeof(uint);
+
+		  int decr = uint_size;
 		  *((uint*)(proc->tf->esp-decr)) = old_eip; //push old eip into stack
+
+		  decr += uint_size;
+		  *((uint*)(proc->tf->esp-decr)) = proc->tf->eax; //push eax into stack
+
+		  decr += uint_size;
+		  *((uint*)(proc->tf->esp-decr)) = proc->tf->ecx; //push ecx into stack
+
+		  decr += uint_size;
+		  *((uint*)(proc->tf->esp-decr)) = proc->tf->edx; //push edx into stack
+
+		  decr += sizeof(siginfo_t);
+		  *((siginfo_t*)(proc->tf->esp-decr)) = info; //push info into stack
+	
+		  decr += uint_size;
+		  *((uint*)(proc->tf->esp-decr)) = proc->trampoline; //push tramp into stack 
+		  //cprintf("%d/n", proc->trampoline);
 		  proc->tf->esp -= decr; //decrement esp counter
-		  proc->ticks = 0;
 	}
 	else{
 		  cprintf("pid %d %s: trap %d err %d on cpu %d "

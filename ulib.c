@@ -107,16 +107,22 @@ memmove(void *vdst, void *vsrc, int n)
 int
 signal(int signum, sighandler_t handler)
 {
- return register_signal_handler(signum, handler, void trampoline());
+ return register_signal_handler(signum, handler, trampoline);
 }
 
-void trampoline(void){
+int trampoline(void){
+//printf(1,"why\n");
 __asm__("addl $0xC,%esp\n\t"
 	"pop %edx\n\t"
 	"pop %ecx\n\t"
 	"pop %eax\n\t"
 	"ret\n\t"
 	);
-}
-//"trampoline: \n\t"
+return 0; 
+} 
+//"trampoline: \n\t" 
+
+/*
+
+*/
 		
