@@ -111,14 +111,13 @@ signal(int signum, sighandler_t handler)
 }
 
 int trampoline(void){
-//printf(1,"why\n");
-__asm__("addl $0xC,%esp\n\t"
-	"pop %edx\n\t"
-	"pop %ecx\n\t"
-	"pop %eax\n\t"
-	"ret\n\t"
-	);
-return 0; 
+__asm__ ("movl 0x8(%ebp),%edx\n\t"    
+	"movl 0xc(%ebp),%ecx\n\t"
+	"movl 0x10(%ebp),%eax\n\t"
+	"add $0x14,%ebp\n\t" 
+	"movl %ebp,%esp\n\t" 
+	"ret\n\t");
+return 0;
 } 
 //"trampoline: \n\t" 
 

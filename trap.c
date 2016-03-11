@@ -84,7 +84,7 @@ trap(struct trapframe *tf)
   case T_DIVIDE:
 	//cprintf("Caught divide by 0\n");
         if(proc -> sig_handler_array[0] >= 0){ //handler has been set
-
+	//cprintf("Caught divide by 0\n");
 	  uint old_eip = proc->tf->eip;	 //save old eip
 
 	  proc->tf->eip = proc -> sig_handler_array[0]; //eip points to handler
