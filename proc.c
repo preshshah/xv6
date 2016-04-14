@@ -1,3 +1,32 @@
+
+Skip to content
+This repository
+
+    Pull requests
+    Issues
+    Gist
+
+    @milaps
+
+2
+2
+
+    8
+
+wkatsak/xv6
+Code
+Issues 0
+Pull requests 1
+Wiki
+Pulse
+Graphs
+xv6/proc.c
+71453f7 on Aug 27, 2014
+Robert Morris a start at concurrent FS system calls
+@rsc
+@aclements
+@kaashoek
+466 lines (400 sloc) 9.84 KB
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -42,10 +71,6 @@ allocproc(void)
     if(p->state == UNUSED)
       goto found;
   release(&ptable.lock);
-  proc->sig_handler_array[0] = -1;
-  proc->sig_handler_array[1] = -1;
-  proc->ticks = 0;
-  proc->setoff = 0;
   return 0;
 
 found:
@@ -343,8 +368,7 @@ forkret(void)
     // of a regular process (e.g., they call sleep), and thus cannot 
     // be run from main().
     first = 0;
-    iinit(ROOTDEV);
-    initlog(ROOTDEV);
+    initlog();
   }
   
   // Return to "caller", actually trapret (see allocproc).
@@ -467,4 +491,58 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+void
+clone(void *(*func) (void *), void *arg, void *stack){
+
+ int i, pid;
+ struct proc *np;
+
+  // Allocate process.
+  if((np = allocproc()) == 0)
+    return -1;
+
+  // Copy process state from p.
+ /* if((np->pgdir = copyuvm(proc->pgdir, proc->sz)) == 0){
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  } */
+  np->sz = proc->sz;
+  np->parent = proc->parent;
+  *np->tf = *proc->tf;
+
+  np->pgdir = proc->pgdir; // might have to dereference the pgdir... new proc has same page table
+
+  // Clear %eax so that fork returns 0 in the child.
+  np->tf->eax = 0;
+
+  np->tf->eip = (int)func;
+  np->ustack = (int)stack;
+
+  // Trying to put the user stack into trapframe
+  np->tf->esp = (int)stack + 4092;
+  *((int *)(np->tf->esp)) = (int)arg;
+  *((int *)(np->tf->esp - 4)) = 0xFFFFFFFF;
+  np->tf->esp = np->tf->esp - 4;
+
+  for(i = 0; i < NOFILE; i++)
+    if(proc->ofile[i])
+      np->ofile[i] = filedup(proc->ofile[i]);
+  np->cwd = idup(proc->cwd);
+
+  safestrcpy(np->name, proc->name, sizeof(proc->name));
+ 
+  pid = np->pid;
+
+  // lock to force the compiler to emit the np->state write last.
+  acquire(&ptable.lock);
+  np->state = RUNNABLE;
+  release(&ptable.lock);
+ 
+  return pid;
+
+
 }
