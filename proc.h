@@ -19,6 +19,9 @@ struct cpu {
 extern struct cpu cpus[NCPU];
 extern int ncpu;
 
+int clone(void *(*func) (void *), void *arg, void *stack);
+int join(int pid, void **stack, void **retval);
+
 // Per-CPU variables, holding pointers to the
 // current cpu and to the current process.
 // The asm suffix tells gcc to use "%gs:0" to refer to cpu
@@ -66,10 +69,9 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
-  uint sig_handler_array[2];   //sig_handler array
-  uint ticks;			//number of ticks
-  uint setoff;			//number of ticks to set off the alarm
   void *ustack;			// pointer to user stack
+  int tflag;			// whether the proc is a thread or not, 1 = thread, 0 = not thread
+  void *retval;			//return value of thread
 };
 
 // Process memory is laid out contiguously, low addresses first:

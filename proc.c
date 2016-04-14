@@ -410,7 +410,7 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
-  struct proc *p;6 deletions(-)
+  struct proc *p;
 
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -464,7 +464,7 @@ procdump(void)
   }
 }
 
-void
+int
 clone(void *(*func) (void *), void *arg, void *stack){
 
  int i, pid;
@@ -482,8 +482,19 @@ clone(void *(*func) (void *), void *arg, void *stack){
     return -1;
   } */
   np->sz = proc->sz;
+  np->tflag = 1;
+
+  if (proc->tflag != 1){
+  	np->parent = proc;
+  }
+  else {
   np->parent = proc->parent;
+  }
+
+
   *np->tf = *proc->tf;
+
+  
 
   np->pgdir = proc->pgdir; // might have to dereference the pgdir... new proc has same page table
 
@@ -491,7 +502,7 @@ clone(void *(*func) (void *), void *arg, void *stack){
   np->tf->eax = 0;
 
   np->tf->eip = (int)func;
-  np->ustack = (int)stack;
+  np->ustack = (void *)stack;
 
   // Trying to put the user stack into trapframe
   np->tf->esp = (int)stack + 4092;
@@ -514,6 +525,48 @@ clone(void *(*func) (void *), void *arg, void *stack){
   release(&ptable.lock);
  
   return pid;
+}
+
+int
+join(int pid, void **stack, void **retval){
+
+  struct proc *p;
+  int havekids;
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for zombie children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != proc)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE && p->pid == pid){
+        // Found one.
+        //pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        //freevm(p->pgdir);
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        release(&ptable.lock);
+	*retval = p->retval;
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || proc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(proc, &ptable.lock);  //DOC: wait-sleep
+  }
 
 
 }
