@@ -42,6 +42,10 @@ allocproc(void)
     if(p->state == UNUSED)
       goto found;
   release(&ptable.lock);
+  proc->sig_handler_array[0] = -1;
+  proc->sig_handler_array[1] = -1;
+  proc->ticks = 0;
+  proc->setoff = 0;
   return 0;
 
 found:
@@ -339,7 +343,8 @@ forkret(void)
     // of a regular process (e.g., they call sleep), and thus cannot 
     // be run from main().
     first = 0;
-    initlog();
+    iinit(ROOTDEV);
+    initlog(ROOTDEV);
   }
   
   // Return to "caller", actually trapret (see allocproc).
