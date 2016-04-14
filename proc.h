@@ -69,6 +69,7 @@ struct proc {
   uint sig_handler_array[2];   //sig_handler array
   uint ticks;			//number of ticks
   uint setoff;			//number of ticks to set off the alarm
+  void *ustack;			// pointer to user stack
 };
 
 // Process memory is laid out contiguously, low addresses first:

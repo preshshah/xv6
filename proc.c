@@ -1,32 +1,3 @@
-
-Skip to content
-This repository
-
-    Pull requests
-    Issues
-    Gist
-
-    @milaps
-
-2
-2
-
-    8
-
-wkatsak/xv6
-Code
-Issues 0
-Pull requests 1
-Wiki
-Pulse
-Graphs
-xv6/proc.c
-71453f7 on Aug 27, 2014
-Robert Morris a start at concurrent FS system calls
-@rsc
-@aclements
-@kaashoek
-466 lines (400 sloc) 9.84 KB
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -439,7 +410,7 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
-  struct proc *p;
+  struct proc *p;6 deletions(-)
 
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
