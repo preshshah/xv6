@@ -28,3 +28,18 @@ int pthread_exit(void* retval){
 	return 0;
 }
 
+int pthread_mutex_init(pthread_mutex_t * mutex, const pthread_mutexattr_t * attr){
+	mutex->mutex_id = mutex_init();
+	//printf(1,"Mutex ID: %d\n",mutex->mutex_id);
+	return mutex->mutex_id;
+}
+int pthread_mutex_destroy(pthread_mutex_t * mutex){
+	return mutex_destroy(mutex->mutex_id);
+}
+int pthread_mutex_lock(pthread_mutex_t * mutex){
+	return mutex_lock(mutex->mutex_id);
+}
+int pthread_mutex_unlock(pthread_mutex_t * mutex){
+	return mutex_unlock(mutex->mutex_id);
+}
+

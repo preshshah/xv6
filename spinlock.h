@@ -1,3 +1,6 @@
+#ifndef SPINLOCK_H
+#define SPINLOCK_H
+
 // Mutual exclusion lock.
 struct spinlock {
   uint locked;       // Is the lock held?
@@ -9,3 +12,15 @@ struct spinlock {
                      // that locked the lock.
 };
 
+struct mymutex{
+	int *flag;
+	int *mystate;
+	struct spinlock lock;
+	void *chan;
+};
+typedef struct mymutex mymutex;
+
+//0 = mutex uninitialized/destroyed, 1 = mutex initialized
+//0 = unlocked, 1 = locked
+
+#endif

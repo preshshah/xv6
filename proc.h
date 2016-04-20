@@ -1,3 +1,5 @@
+#include "spinlock.h"
+
 // Segments in proc->gdt.
 #define NSEGS     7
 
@@ -21,6 +23,13 @@ extern int ncpu;
 
 int clone(void *(*func) (void *), void *arg, void *stack);
 int join(int pid, void **stack, void **retval);
+
+int mutex_init(void);
+int mutex_destroy(int mutex_id);
+int mutex_lock(int mutex_id);
+int mutex_unlock(int mutex_id);
+
+
 
 // Per-CPU variables, holding pointers to the
 // current cpu and to the current process.
@@ -72,6 +81,7 @@ struct proc {
   void *ustack;			// pointer to user stack
   int tflag;			// whether the proc is a thread or not, 1 = thread, 0 = not thread
   void *retval;			//return value of thread
+  mymutex mutex_table[32];	//per-process table of mutexes
 };
 
 // Process memory is laid out contiguously, low addresses first:

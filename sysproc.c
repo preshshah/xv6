@@ -159,3 +159,84 @@ sys_texit(void)
   proc->retval = (void *) retval;
   exit();
 }
+
+int
+sys_mutex_init(void)
+{
+	return mutex_init();
+}
+
+int
+sys_mutex_destroy(void)
+{
+	int mutex_id;
+
+	if(argint(0,&mutex_id) < -1){
+      return -1;
+  }
+
+	if(mutex_id < 0 || mutex_id > 31){
+		//cprintf("Mutex ID must be between 0 and 31\n");
+		return -1;
+	}
+
+	if(*(proc->mutex_table[mutex_id].flag) == 1){
+		///cprintf("Trying to destory a locked mutex\n");
+		return -1;
+	}
+
+	if(*(proc->mutex_table[mutex_id].mystate) == 0){
+		//cprintf("This mutex is uninitialized or already destroyed\n");
+		return -1;
+	}
+	
+	return mutex_destroy(mutex_id);
+}
+
+int
+sys_mutex_lock(void)
+{
+	int mutex_id;
+
+	if(argint(0,&mutex_id) < -1){
+      		return -1;
+  	}
+
+	if(mutex_id < 0 || mutex_id > 31){
+		//cprintf("Mutex ID must be between 0 and 31\n");
+		return -1;
+	}
+
+	if(*(proc->mutex_table[mutex_id].mystate) == 0){
+		//cprintf("This lock is uninitialized or destoryed\n");
+		return -1;
+	}
+	
+	return mutex_lock(mutex_id);
+}
+
+int
+sys_mutex_unlock(void)
+{
+	int mutex_id;
+
+	if(argint(0,&mutex_id) < -1){
+      		return -1;
+  	}
+
+	if(mutex_id < 0 || mutex_id > 31){
+		//cprintf("Mutex ID must be between 0 and 31\n");
+		return -1;
+	}
+
+	if(*(proc->mutex_table[mutex_id].mystate) == 0){
+		//cprintf("This lock is uninitialized or destoryed\n");
+		return -1;
+	}
+
+	return mutex_unlock(mutex_id);
+}
+
+
+
+

@@ -20,6 +20,9 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+static int high = 1;
+static int low = 0;
+
 void
 pinit(void)
 {
@@ -161,6 +164,14 @@ fork(void)
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
+
+
+  int q;
+  for(q=0; q < 32; q++){
+	initlock(&(proc->mutex_table[q].lock), "lock");
+	np->mutex_table[q].mystate = &low;
+	np->mutex_table[q].flag = &low;
+  }
   release(&ptable.lock);
   
   return pid;
@@ -522,6 +533,11 @@ clone(void *(*func) (void *), void *arg, void *stack){
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
+
+  int z;
+  for(z=0;z < 32; z++){
+	np->mutex_table[z] = proc->mutex_table[z];
+  }
   release(&ptable.lock);
  
   return pid;
@@ -569,4 +585,47 @@ join(int pid, void **stack, void **retval){
   }
 
 
+}
+
+int mutex_init(void){
+	int i;
+	for(i=0;i < 32; i++){
+		//cprintf("Mutex[i]: %d\n", i);
+		//cprintf("State: %d\n", *(proc->mutex_table[i].mystate));
+		if(*(proc->mutex_table[i].mystate) == 0){
+			proc->mutex_table[i].mystate = &high;
+			proc->mutex_table[i].chan = &(proc->mutex_table[i]);
+			//cprintf("State2: %d\n", proc->mutex_table[i]->mystate);
+			return i;
+		}
+	}
+
+	return -1;
+}
+
+int mutex_destroy(int mutex_id){
+	proc->mutex_table[mutex_id].mystate = &low;
+	return 0;
+}
+
+
+
+int mutex_lock(int mutex_id){
+	acquire(&(proc->parent->mutex_table[mutex_id].lock));
+	//cprintf("Flag: %d\n", *(proc->mutex_table[mutex_id].flag));
+	while(*(proc->parent->mutex_table[mutex_id].flag) == 1){
+		//cprintf("HERE HERE HERE HERE HERE\n");
+		sleep(proc->parent->mutex_table[mutex_id].chan,&(proc->parent->mutex_table[mutex_id].lock));
+	}
+	proc->parent->mutex_table[mutex_id].flag = &high;
+	release(&(proc->parent->mutex_table[mutex_id].lock));
+	return 0;
+}
+
+int mutex_unlock(int mutex_id){
+	acquire(&(proc->parent->mutex_table[mutex_id].lock));
+	proc->parent->mutex_table[mutex_id].flag = &low;
+	wakeup(proc->parent->mutex_table[mutex_id].chan);
+	release(&(proc->parent->mutex_table[mutex_id].lock));
+	return 0;
 }
